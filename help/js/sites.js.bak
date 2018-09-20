@@ -1,0 +1,277 @@
+function setupOpenSitesAction()
+{
+    var onOpen = function(event){
+        if(this.className!="sites_list_item")
+            return;
+        
+        var url = this.attributes["site_url"].nodeValue;
+        window.open(url);
+        event.stopPropagation();
+    };
+
+    var lists = $('.sites_list_item'); 
+    for(var index in lists)
+    {
+        var li = lists[index];
+        if(li == null)
+            continue;
+
+        li.onclick = onOpen;
+    }
+
+}
+
+function setupOpenOfficialSiteAction()
+{
+    var onClick = function(event){
+        if(this.className!="normal_button")
+            return;
+        
+        var url = this.attributes["site_url"].nodeValue;
+        window.open(url);
+        event.stopPropagation();
+    };
+
+    var lists = $('.normal_button'); 
+    for(var index in lists)
+    {
+        var li = lists[index];
+        if(li == null)
+            continue;
+
+        li.onclick = onClick;
+    }
+
+}
+
+function setupInstallFrm(layero, response)
+{
+    var _name_id = response._name_id;
+    var needs = response.needs;
+    var icons = response.icons;
+
+    for(var icon in icons)
+    {
+        var img = icons[icon];
+    }
+
+    var sub_str = "";
+    var frm_document = layero.find("iframe")[0].contentWindow.document;
+    var input = $("#input_div", frm_document);  
+    var bSelectIcon = false;
+    for(var key in needs)
+    {
+        var one = needs[key];
+        var tag = one.tag;
+        sub_str += "<p class=\"input_head\">" + tag + ":</p>"
+        sub_str += "<input class=\"input_area\"";
+        if(one.max_length)
+        {
+            var max_length = one.max_length;
+            sub_str += " maxlength=\"" + max_length + "\"";
+        }
+        if(one.filter)
+        {
+            var filter = one.filter;
+            sub_str += " onkeyup=\"" + filter + "\" onpaste=\"" + filter + "\" oncontextmenu =\"" + filter + "\"";
+        }
+        sub_str += "></input>";
+        if(!bSelectIcon)
+        {
+            bSelectIcon = true;
+            sub_str += "<input type=\"text\" name=\"icon_select\" id=\"icon_select\" icons=\"" + icons + "\" />";
+        }
+        sub_str += "<br>";
+    }
+
+    input.append(sub_str);
+
+    var icon_select = frm_document.getElementById('icon_select'); 
+        $(icon_select).fontIconPicker({
+            source:    icons,
+            emptyIcon: false,
+            hasSearch: false
+        });
+
+    var select = $('#icon_select').val();
+
+    var evObj = frm_document.createEvent('HTMLEvents');
+    evObj.initEvent('load', true, false);
+    frm_document.dispatchEvent(evObj);
+    
+}
+
+function setupInstallAction()
+{
+    var pre;
+    var onClickBtn = function(event){
+        if(this.className!="install_button")
+            return;
+        var id = this.getAttribute("_name_id");
+        var title = '安装' + this.getAttribute("sitename"); 
+
+        var packJson = {"command":"getSiteInstallNeeds", "_name_id":id};
+        var params = "json=" + JSON.stringify(packJson);
+        var sites_html = "";
+        $.ajax({
+            url:'getsitesinfo.php',
+            type:'post',
+            dataType:'json',
+            data:params,
+            success:function(getted){
+                var response_str = getted.response;
+                var response = jQuery.parseJSON(response_str);
+
+                layer.open({
+                  type: 2,
+                  title: title,
+                  shadeClose: true,
+                  shade: false,
+                  maxmin: false, //开启最大化最小化按钮
+                  area: ['500px', '600px'],
+                  content: './install.html',
+                    success: function (layero, index) {
+                        setupInstallFrm(layero, response);
+                    }
+            });
+                
+            },
+            error:function(XMLHttpRequest, textStatus, errorThrown){
+            }
+        });
+    
+        event.stopPropagation();
+    };
+
+    var install_button = document.createElement("input");
+    install_button.type = "button";
+    install_button.value = "安装";
+    install_button.className = "install_button";
+    install_button.onclick = onClickBtn;
+    
+    var onSelect = function(event){
+        if(this.className!="default_info_item")
+            return;
+        if(pre)
+        {
+            pre.style.backgroundColor = "lightgray";
+            pre.removeChild(install_button);
+        }
+        this.style.backgroundColor = "#DB5673";
+        this.appendChild(install_button)    
+        pre = this;
+        install_button.setAttribute("_name_id", this.getAttribute("_name_id"));
+        install_button.setAttribute("sitename", this.getAttribute("sitename"));
+        
+        event.stopPropagation();
+    };
+
+    lists = $('.default_info_item'); 
+    for(var index in lists)
+    {
+        var li = lists[index];
+        if(li == null)
+            continue;
+
+        li.onclick = onSelect;
+    }
+}
+
+function setupSitesAction()
+{
+    setupOpenSitesAction();
+    setupOpenOfficialSiteAction();
+    setupInstallAction();
+    
+}
+
+function showMySitesPanel(sitesinfo)
+{
+    var panel_html = "";
+    panel_html += "<div class=\"sites_panel\">";
+    panel_html += "<div class=\"video_panel_title\"><p>" + "我的网站" + "</p></div>";
+    panel_html += "<ul class=\"sites_list\">";
+    for(var site in sitesinfo)
+    {
+        var sitename = sitesinfo[site].sitename;
+        var url = sitesinfo[site].url;
+        var icon = sitesinfo[site].icon;
+        var signature = sitesinfo[site].signature;
+
+        panel_html += "<li class=\"sites_list_item\" site_url=\"" + url + "\"><img src=\"" + icon + "\" /><div class=\"text_block\" align=\"left\"><p class=\"title_text\">" + sitename + "</p><p>" + signature + "</p></div></li>";
+    }
+    panel_html += "</ul>";
+    panel_html += "</div>";
+    panel_html += "<div class=\"cleaner\"></div>";
+
+    return panel_html;
+}
+
+function showInstallPanel(sitesinfo)
+{
+    var panel_html = "";
+    panel_html += "<div class=\"default_info_panel\">";
+    panel_html += "<div class=\"video_panel_title\"><p>" + "安装新网站" + "</p></div>";
+    panel_html += "<ul class=\"default_info_list\">";
+    for(var site in sitesinfo)
+    {
+        var sitename = sitesinfo[site]._name;
+        var sitename_id = sitesinfo[site]._name_id;
+        var type = sitesinfo[site].type;
+        var _icon_name = sitesinfo[site]._icon_name;
+        var _description = sitesinfo[site]._description;
+        var official_site = sitesinfo[site].official_site;
+
+        panel_html += "<li class=\"default_info_item\" sitename=\"" + sitename + "\" _name_id =" + sitename_id + ">";
+        panel_html += "<div class=\"default_info_title\" align=\"left\"><img src=\"" + _icon_name + "\" /><p class=\"default_title\">" + sitename + "</p><p class=\"default_type\">" + type + "</p><input type=\"button\" value=\"官网\" class=\"normal_button\" site_url=\"" + official_site + "\"></input></div>";
+        panel_html += "<textarea class=\"auto_scroll\" readonly>" + _description + "</textarea></li>";
+    }
+    panel_html += "</ul>";
+    panel_html += "</div>";
+    panel_html += "<div class=\"cleaner\"></div>";
+
+    return panel_html;    
+}
+
+function showSitesPanel()
+{
+    var packJson = {"command":"getSitesInfo"};  
+    var params = "json=" + JSON.stringify(packJson);
+    var sites_html = "";
+    $.ajax({
+        url:'getsitesinfo.php',
+        type:'post',
+        dataType:'json',
+        data:params,
+        success:function(getted){
+            var response_str = getted.response;
+            var sitesinfo = jQuery.parseJSON(response_str).sitesinfo;
+
+            sites_html += showMySitesPanel(sitesinfo);
+            
+            packJson = {"command":"getDefaultPHPInfo"};  
+            params = "json=" + JSON.stringify(packJson);
+            $.ajax({
+                url:'getsitesinfo.php',
+                type:'post',
+                dataType:'json',
+                data:params,
+                success:function(getted){
+                    var response_str = getted.response;
+                    var sitesinfo = jQuery.parseJSON(response_str).infos;
+
+                    sites_html += showInstallPanel(sitesinfo);
+                    
+                    $("#sites_frm").html(sites_html);
+                    setupSitesAction();
+                },
+                error:function(XMLHttpRequest, textStatus, errorThrown){
+                    $("#my_hint").html(textStatus);
+                }
+            });
+        },
+        error:function(XMLHttpRequest, textStatus, errorThrown){
+            $("#my_hint").html(textStatus);
+        }
+    });
+}

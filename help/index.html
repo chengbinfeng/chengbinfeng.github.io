@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+</body>
+<div id="help_content" />
+<script type='text/javascript' src='js/jquery.min.js'></script>
+<script>
+    if((navigator.language || navigator.browserLanguage).toLowerCase() == 'zh-cn')
+        $('#help_content').load('help_cn.html', function(){});
+    else
+        $('#help_content').load('help_en.html', function(){});
+
+        $('#help_content').css("max-width", "1000px");
+</script> 
+</html>
